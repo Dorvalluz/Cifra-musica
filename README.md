@@ -1,5 +1,5 @@
 # Cifra-musica
-"""Cantar e tocar Legiao Urbana - Geração Coca cola - 
+"""Cantar e tocar Legião Urbana - Geração Coca cola - 
 inclui um slider que controla o tamanho do texto dinamicamente, utilizado app pydroid3."""
 
 import tkinter as tk
