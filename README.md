@@ -26,7 +26,7 @@ Este projeto em Python utiliza a biblioteca **Pygame** para criar um letreiro ve
 
 ```
 /projeto/
-├── coca.mp3              # Arquivo da música (não incluído)
+├── coca.mp3              # Arquivo da música 
 ├── letreiro_coca_cola.py # Código principal do projeto
 ```
 
@@ -49,7 +49,6 @@ Este projeto em Python utiliza a biblioteca **Pygame** para criar um letreiro ve
 
 ## ⚠️ Observações
 
-- O arquivo `.mp3` **não acompanha** este repositório por questões de direitos autorais.
 - Este projeto foi desenvolvido com finalidade **educacional e demonstrativa**.
 
 ---
