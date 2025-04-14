@@ -1,0 +1,42 @@
+import tkinter as tk
+
+# Função para criar o letreiro e mover o texto para cima
+def move_text():
+    global y_pos
+    canvas.delete("text")  # Apaga o texto anterior
+    canvas.create_text(window_width // 2, y_pos, text="Letreiro em movimento!", font=("Arial", 20), fill="white", tag="text")
+    
+    # Atualiza a posição do texto
+    y_pos -= 2  # Mover o texto para cima
+    
+    # Se o texto sair da tela (acima), reposiciona na parte inferior
+    if y_pos < -30:
+        y_pos = window_height  # Retorna para a parte inferior da tela
+    
+    # Atualiza a posição do texto a cada 50 ms
+    root.after(50, move_text)
+
+# Cria a janela principal
+root = tk.Tk()
+root.title("Letreiro Subindo")
+
+# Tamanho da janela
+window_width = 800
+window_height = 600
+root.geometry(f"{window_width}x{window_height}")
+
+# Define o fundo da janela como preto
+root.configure(bg="black")
+
+# Cria um canvas para desenhar o texto
+canvas = tk.Canvas(root, width=window_width, height=window_height, bg="black")
+canvas.pack()
+
+# Variáveis de controle do letreiro
+y_pos = window_height  # Começa na parte inferior da tela
+
+# Inicia o movimento do letreiro
+move_text()
+
+# Inicia o loop principal do Tkinter
+root.mainloop()

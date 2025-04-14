@@ -1,96 +1,13 @@
-import tkinter as tk
 import pygame
+import tkinter as tk
 import os
+import time
 
-# Nome do arquivo de música
-MUSIC_FILE = "coca.mp3"
+# Caminho do arquivo de música
+MUSIC_FILE = r"C:\Users\Dorval\Desktop\GITHB\Cifra-musica\coca.mp3"
 
-# Função para encontrar o arquivo de música no diretório atual e seus subdiretórios
-def find_music_file(filename):
-    """Procura o arquivo de música no diretório atual e seus subdiretórios."""
-    for root, dirs, files in os.walk("."):
-        if filename in files:
-            return os.path.join(root, filename)
-    return None
-
-# Função para atualizar a posição do texto
-def update_text_position():
-    global y_pos, scrolling
-    if scrolling:
-        y_pos -= 1  # Move 1 pixel a cada atualização
-        canvas.move(text_id, 0, -1)
-        
-        if y_pos < -text_height:
-            y_pos = window_height
-            canvas.coords(text_id, window_width // 2, y_pos)
-        
-        canvas.after(30, update_text_position)  # Atualiza a cada 30ms
-
-# Função para iniciar ou parar o letreiro e a música
-def toggle_scrolling():
-    global scrolling, y_pos
-    if scrolling:
-        scrolling = False
-        pygame.mixer.music.stop()
-        play_button.config(text="PLAY")
-        y_pos = window_height  # Redefine a posição do letreiro
-        canvas.coords(text_id, window_width // 2, y_pos)
-    else:
-        scrolling = True
-        pygame.mixer.music.play()
-        play_button.config(text="STOP")
-        update_text_position()
-        root.after(160000, stop_all)  # Para tudo após 2:40 (160 segundos)
-
-# Função para parar música e letreiro após 2:20
-def stop_all():
-    global scrolling
-    scrolling = False
-    pygame.mixer.music.stop()
-    play_button.config(text="PLAY")
-    y_pos = window_height  # Redefine a posição do letreiro
-    canvas.coords(text_id, window_width // 2, y_pos)
-
-# Função para atualizar o tamanho da fonte
-def update_font_size(size):
-    """Atualiza o tamanho da fonte do texto no canvas."""
-    global text_id
-    current_coords = canvas.coords(text_id)
-    canvas.delete(text_id)
-    text_id = canvas.create_text(window_width // 2, current_coords[1], text=text, font=("Arial", size), anchor='center')
-    global text_height
-    text_height = canvas.bbox(text_id)[3] - canvas.bbox(text_id)[1]
-
-# Inicializa o mixer do Pygame
-pygame.mixer.init()
-
-# Tenta encontrar o arquivo de música
-music_path = find_music_file(MUSIC_FILE)
-
-# Carrega o arquivo de música se for encontrado
-if music_path:
-    try:
-        pygame.mixer.music.load(music_path)
-    except pygame.error as e:
-        print("Erro ao carregar o arquivo de música:", e)
-else:
-    print(f"Arquivo de música '{MUSIC_FILE}' não encontrado.")
-
-# Cria a janela principal
-root = tk.Tk()
-root.title("Letreiro Vertical - Geração Coca-Cola")
-
-# Define as dimensões da janela
-window_width = 700
-window_height = 1400
-root.geometry(f"{window_width}x{window_height}")
-
-# Cria um canvas para desenhar o texto
-canvas = tk.Canvas(root, width=window_width, height=window_height)
-canvas.pack()
-
-# Adiciona o texto ao canvas
-text = ("\n" * 80 +  # Pula 80 linhas no início
+# Texto da música
+text = """\n" * 800 + 
         "B\n   Quando nascemos fomos programados\n"
         "D             A\n   A receber o que vocês\n"
         "B\n   nos empurraram com os enlatados\n"
@@ -135,26 +52,142 @@ text = ("\n" * 80 +  # Pula 80 linhas no início
         "A       D    B     A       D    B\nGeração Coca-Cola, geração coca-cola\n"
         "A       D    B     A       D    B\nGeração Coca-Cola, geração coca-cola\n"
         "(solo 2 - 3x)\nG   A   B\n"
-        "Composição: Renato Russo\nElaborado por Dorval Luz")
+        "Composição: Renato Russo\nElaborado por Dorval Luz"""
 
-# Centraliza o texto e posiciona-o fora da parte inferior da tela
-text_id = canvas.create_text(window_width // 2, window_height, text=text, font=("Arial", 7), anchor='center')
+# Inicializa o pygame para o áudio
+pygame.mixer.init()
 
-# Calcula a altura do texto
-text_height = canvas.bbox(text_id)[3] - canvas.bbox(text_id)[1]
+# Cria a janela com Tkinter
+root = tk.Tk()
+root.title("Letreiro Vertical - Geração Coca-Cola")
+root.geometry("900x500")
+root.resizable(True, True)  # Permite redimensionamento da janela
 
-# Inicializa a posição y do texto
-y_pos = window_height
+# Canvas para o letreiro
+canvas = tk.Canvas(root, width=700, height=500, bg="black")
+canvas.pack(side="left", fill="both", expand=True)  # O canvas fica à esquerda
+
+# Texto do letreiro (inicialmente invisível)
+lyrics = canvas.create_text(350, 800, text=text, font=("Arial", 16), fill="green", justify="center", anchor="center")
+
+# Painel de controle dos botões (lado direito)
+panel = tk.Frame(root, width=200, bg="#333333", height=500)
+panel.pack(side="right", fill="y")
+
+# Variáveis de controle
 scrolling = False
+yPos = 500  # Posição inicial do texto (fora da tela)
+scroll_speed = 0.1  # Velocidade da rolagem
+music_length = 0  # Duração da música em segundos
+start_time = None  # Tempo de início da música para controlar o atraso
 
-# Cria o botão PLAY/STOP
-play_button = tk.Button(root, text="PLAY", command=toggle_scrolling)
-play_button.pack(pady=2)
+# Função de rolagem do texto sincronizada com a música (karaoke)
+def scroll_text():
+    global yPos, music_length
+    if scrolling:
+        # Atualiza a posição do texto com base no tempo da música
+        current_time = pygame.mixer.music.get_pos() / 1000  # Tempo da música em segundos
+        yPos = 500 - (current_time / music_length) * 800  # Controla a rolagem com base no tempo da música
+        canvas.coords(lyrics, 350, yPos)  # Atualiza a posição do texto
 
-# Cria o slider para alterar o tamanho da fonte
-font_slider = tk.Scale(root, from_=7, to=30, orient='horizontal', label='Tamanho da Fonte', command=lambda size: update_font_size(int(size)))
-font_slider.pack(pady=2)
-font_slider.set(7)  # Tamanho inicial da fonte
+        # Se o texto sair da tela, reinicia a rolagem
+        if yPos < -canvas.bbox(lyrics)[3]:
+            yPos = 500
 
-# Inicia o loop principal do Tkinter
+        canvas.after(10, scroll_text)
+
+# Função de controle de play/stop
+def toggle_scrolling():
+    global scrolling, start_time
+    if scrolling:
+        pygame.mixer.music.pause()
+        play_button.config(text="Play")
+        stop_button.config(state="normal")  # Habilita o botão de stop
+        scrolling = False
+    else:
+        pygame.mixer.music.play()
+        play_button.config(text="Stop")
+        stop_button.config(state="normal")  # Habilita o botão de stop
+        crolling = True
+        start_time = time.time()  # Marca o momento em que a música começa a tocar
+        scroll_text()
+
+# Função de controle de pausa
+def pause_music():
+    global scrolling
+    if scrolling:
+        pygame.mixer.music.pause()
+        pause_button.config(text="Resume")
+        scrolling = False
+    else:
+        pygame.mixer.music.unpause()
+        pause_button.config(text="Pause")
+        scrolling = True
+        scroll_text()
+
+# Função para reiniciar a música e sincronizar o letreiro
+def stop_music():
+    global scrolling
+    pygame.mixer.music.stop()
+    pygame.mixer.music.play()
+    play_button.config(text="Stop")
+    stop_button.config(state="disabled")  # Desabilita o botão de stop
+    scrolling = True
+    scroll_text()
+
+# Função para aumentar o tamanho da fonte
+def increase_font_size():
+    font_size = int(canvas.itemcget(lyrics, "font").split()[1])
+    canvas.itemconfig(lyrics, font=("Arial", font_size + 2))
+
+# Função para diminuir o tamanho da fonte
+def decrease_font_size():
+    font_size = int(canvas.itemcget(lyrics, "font").split()[1])
+    if font_size > 10:
+        canvas.itemconfig(lyrics, font=("Arial", font_size - 2))
+
+# Função para mudar o tema (cores)
+def change_theme():
+    current_color = canvas.itemcget(lyrics, "fill")
+    new_color = "white" if current_color == "green" else "green"
+    canvas.itemconfig(lyrics, fill=new_color)
+
+# Função para carregar e preparar a música
+def load_music():
+    global music_length
+    if os.path.exists(MUSIC_FILE):
+        pygame.mixer.music.load(MUSIC_FILE)
+        music_length = pygame.mixer.Sound(MUSIC_FILE).get_length()  # Duração da música
+        pygame.mixer.music.set_volume(1.0)
+
+# Função para verificar se o atraso de 11 segundos passou
+def check_start_time():
+    if start_time and time.time() - start_time >= 11:
+        canvas.itemconfig(lyrics, state="normal")  # Torna o letreiro visível após 11 segundos
+        toggle_scrolling()  # Inicia a rolagem após 11 segundos
+
+# Botões para controle no painel à direita
+play_button = tk.Button(panel, text="Play", command=toggle_scrolling, bg="#555555", fg="white")
+play_button.pack(pady=10, fill="x")
+
+increase_font_button = tk.Button(panel, text="A+", command=increase_font_size, bg="#555555", fg="white")
+increase_font_button.pack(pady=5, fill="x")
+
+decrease_font_button = tk.Button(panel, text="A-", command=decrease_font_size, bg="#555555", fg="white")
+decrease_font_button.pack(pady=5, fill="x")
+
+theme_button = tk.Button(panel, text="Mudar Cores", command=change_theme, bg="#555555", fg="white")
+theme_button.pack(pady=5, fill="x")
+
+stop_button = tk.Button(panel, text="Stop", command=stop_music, bg="#555555", fg="white", state="disabled")
+stop_button.pack(pady=5, fill="x")
+
+pause_button = tk.Button(panel, text="Pause", command=pause_music, bg="#555555", fg="white")
+pause_button.pack(pady=5, fill="x")
+
+# Carregar a música
+load_music()
+
+# Iniciar a aplicação
+root.after(10, check_start_time)
 root.mainloop()

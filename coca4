@@ -1,0 +1,152 @@
+import tkinter as tk
+import pygame
+import os
+import time
+
+# Caminho do arquivo de música
+MUSIC_FILE = r"C:\Users\Dorval\Desktop\GITHB\Cifra-musica\coca.mp3"  # Caminho absoluto para o MP3
+
+# Letra da música com marcas de tempo (em segundos)
+lyrics = [
+    [0, "Quando nascemos fomos programados"],
+    [3, "A receber o que vocês"],
+    [6, "Nos empurraram com os enlatados"],
+    [9, "Dos U.S.A., de 9 às 6"],
+    [12, "Desde pequenos nós comemos lixo"],
+    [15, "Comercial e industrial"],
+    [18, "Mas agora chegou nossa vez"],
+    [21, "Vamos cuspir de volta o lixo em cima de vocês"],
+    [24, "(refrão)"],
+    [27, "Somos os filhos da revolução"],
+    [30, "Somos burgueses sem religião"],
+    [33, "Somos o futuro da nação"],
+    [36, "Geração Coca-Cola"],
+    [39, "Depois de vinte anos na escola"],
+    [42, "Não é difícil aprender"],
+    [45, "Todas as manhas do seu jogo sujo"],
+    [48, "Não é assim que tem que ser?"],
+    [51, "Vamos fazer nosso dever de casa"],
+    [54, "E aí então, vocês vão ver"],
+    [57, "Suas crianças derrubando reis"],
+    [60, "Fazer comédia no cinema com as suas leis"],
+    [63, "(refrão)"],
+    [66, "Somos os filhos da revolução"],
+    [69, "Somos burgueses sem religião"],
+    [72, "Somos o futuro da nação"],
+    [75, "Geração Coca-Cola"],
+    [78, "Geração Coca-Cola"]
+]
+
+# Inicializa o mixer do Pygame
+pygame.mixer.init()
+
+# Verifica se o caminho do MP3 está correto
+if not os.path.exists(MUSIC_FILE):
+    print(f"Arquivo de música não encontrado: {MUSIC_FILE}")
+else:
+    try:
+        pygame.mixer.music.load(MUSIC_FILE)
+    except pygame.error as e:
+        print(f"Erro ao carregar a música: {e}")
+
+# Função para atualizar o letreiro de karaokê
+def update_lyrics(current_time):
+    global current_line
+    if current_line < len(lyrics) and lyrics[current_line][0] <= current_time:
+        canvas.delete('lyrics')
+        canvas.create_text(window_width // 2, y_pos, text=lyrics[current_line][1], font=("Arial", 16), fill="white", tag='lyrics')
+        current_line += 1
+
+# Função para tocar a música e atualizar o letreiro
+def play_music():
+    pygame.mixer.music.play()  # Toca a música uma vez
+    start_time = time.time()  # Marca o tempo inicial
+    root.after(int(speed_scale.get()), track_lyrics, start_time)  # Inicia a atualização das letras
+
+# Função para acompanhar a música e atualizar as letras
+def track_lyrics(start_time):
+    global y_pos
+    current_time = time.time() - start_time
+    update_lyrics(current_time)
+    
+    # Move o texto de baixo para cima
+    y_pos -= 2  # Ajuste da velocidade de movimento (2 pixels por ciclo)
+    
+    # Se o texto sair da tela (acima), reposiciona na parte de baixo
+    if y_pos < -30:
+        y_pos = window_height
+    
+    # Continua atualizando o letreiro
+    root.after(int(speed_scale.get()), track_lyrics, start_time)
+
+# Função para pausar a música
+def pause_music():
+    pygame.mixer.music.pause()
+
+# Função para retomar a música
+def unpause_music():
+    pygame.mixer.music.unpause()
+
+# Função para parar a música
+def stop_music():
+    pygame.mixer.music.stop()
+
+# Função para ajustar a velocidade do letreiro
+def adjust_speed(val):
+    pass  # O valor do slider será usado diretamente na função track_lyrics()
+
+# Cria a janela principal
+root = tk.Tk()
+root.title("Karaoke Player")
+
+# Torna a janela responsiva
+root.geometry("800x600")  # Tamanho inicial, pode ser redimensionado
+root.resizable(True, True)  # Permite redimensionamento da janela
+
+# Define o fundo da janela como preto
+root.configure(bg="black")
+
+# Cria um painel para o letreiro
+panel_frame = tk.Frame(root, bg="black")
+panel_frame.pack(fill="both", expand=True)
+
+# Cria um canvas dentro do painel
+canvas = tk.Canvas(panel_frame, bg="black")
+canvas.pack(fill="both", expand=True)
+
+# Variáveis de controle
+current_line = 0
+y_pos = canvas.winfo_height()  # Começa a partir da parte inferior da tela
+
+# Variáveis de tamanho da janela
+def update_window_size(event):
+    global window_width, window_height, y_pos
+    window_width = event.width
+    window_height = event.height
+    y_pos = window_height  # Atualiza a posição inicial para a parte inferior da janela
+
+root.bind("<Configure>", update_window_size)
+
+# Botões de controle de música
+control_frame = tk.Frame(root, bg="lightgray", pady=10)
+control_frame.pack(fill="x")
+
+play_button = tk.Button(control_frame, text="PLAY", command=play_music)
+play_button.pack(side="left", padx=5)
+
+pause_button = tk.Button(control_frame, text="PAUSE", command=pause_music)
+pause_button.pack(side="left", padx=5)
+
+unpause_button = tk.Button(control_frame, text="UNPAUSE", command=unpause_music)
+unpause_button.pack(side="left", padx=5)
+
+stop_button = tk.Button(control_frame, text="STOP", command=stop_music)
+stop_button.pack(side="left", padx=5)
+
+# Slider para controlar a velocidade do letreiro
+speed_scale = tk.Scale(control_frame, from_=50, to=500, orient="horizontal", label="Velocidade do Letreiro (ms)")
+speed_scale.set(100)  # Valor inicial
+speed_scale.pack(side="left", padx=10)
+
+# Inicia o loop principal do Tkinter
+root.mainloop()
