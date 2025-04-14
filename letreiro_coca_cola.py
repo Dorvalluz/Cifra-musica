@@ -9,7 +9,7 @@ pygame.init()
 screen_width = 800
 screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Letreiro Vertical - Geração Coca-Cola")
+pygame.display.set_caption("Geração Coca-Cola")
 
 # Cores
 BLACK = (0, 0, 0)
